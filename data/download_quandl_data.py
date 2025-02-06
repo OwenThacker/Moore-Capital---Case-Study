@@ -1,50 +1,34 @@
-import quandl
-from settings.default import ALL_QUANDL_CODES
 import datetime as dt
-import argparse
 import os
+import pandas as pd
 
-DEPTH = 1
+# Defining the relative path dynamically
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Gets the current script directory
+csv_file = os.path.join(script_dir, "../SX7P_cleaned.csv")  # Going one level up and appending the file name
 
-def main(api_key: str):
-    quandl.ApiConfig.api_key = api_key
+# Reading in the Data to a Pandas DataFrame
+data = pd.read_csv(csv_file, index_col="Dates", parse_dates=True) 
 
-    if not os.path.exists(os.path.join("data", "quandl")):
-        os.mkdir(os.path.join("data", "quandl"))
+print("CSV has sucessfully been read, printing data head \n")
+print(data.head(5))
+print(data.columns.unique()) # Used this for replacing the Quandl codes easily
 
-    for t in ALL_QUANDL_CODES:
-        print(t)
-        try:
-            data = quandl.get(
-                f"{t}{DEPTH}",
-                start_date="1988-01-01",
-            )
-        except BaseException as ex:
-            print(ex)
-        if ("Settle" in data.columns) and (data.index.min() <= dt.datetime(2015, 1, 1)):
-            data[["Settle"]].to_csv(
-                os.path.join("data", "quandl", f"{t.split('/')[-1]}.csv")
-            )
+# Ensure the folder exists
+if not os.path.exists(os.path.join("quandl")):
+    os.makedirs(os.path.join("quandl"))
 
+# Making a loop to store data in how originial Quandl data retreival behaved
+for i in range(len(data.columns)):
 
-if __name__ == "__main__":
+    ticker = data.columns[i]  # Storing the ticker name from the columns
 
-    def get_args():
-        """Download the Quandl data"""
+    # Using the saved ticker variable to copy the data for that ticker
+    ticker_data = data[[ticker]].copy()  
+    ticker_data.columns = ['Settle']  # Renamed the columns to 'Settle' to match the previous Quandl output
 
-        parser = argparse.ArgumentParser(description="Download the Quandl data.")
-        parser.add_argument(
-            "api_key",
-            metavar="k",
-            type=str,
-            nargs="?",
-            help="quandl API key",
-        )
+    # Saving the ticker data to it's own CSV file within a quandle folder
+    ticker_data.to_csv(
+        os.path.join("quandl", f"{ticker}.csv")
+    )
 
-        args = parser.parse_known_args()[0]
-
-        return (
-            args.api_key,
-        )
-    
-    main(*get_args())
+print("Data has been successfully saved as separate CSV files.")
