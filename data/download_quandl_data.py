@@ -25,7 +25,7 @@ for i in range(len(data.columns)):
 
     # Using the saved ticker variable to copy the data for that ticker
     ticker_data = data[[ticker]].copy()  
-    ticker_data.columns = ['Settle']  # Renamed the columns to 'Settle' to match the previous Quandl output
+    ticker_data.columns = ['Settle']  # Renamed the column to 'Settle' to match the previous Quandl output
 
     # Saving the ticker data to its own CSV file within the quandl folder
     ticker_data.to_csv(

@@ -4,7 +4,7 @@ import pathlib
 import shutil
 import copy
 
-from keras_tuner import RandomSearch
+from keras_tuner import RandomSearch # Updated the import
 from abc import ABC, abstractmethod
 
 from tensorflow import keras
@@ -189,7 +189,7 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
         for callback in original_callbacks:
             if isinstance(callback, SharpeValidationLoss):
                 callback.set_weights_save_loc(
-                    self._get_checkpoint_fname(trial.trial_id)
+                    self._get_checkpoint_fname(trial.trial_id) # Removed the self._reprted_step as too many arguments given
                 )
 
         # Run the training process multiple times.
@@ -204,7 +204,7 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
             # callbacks.append(model_checkpoint)
             copied_fit_kwargs["callbacks"] = callbacks
 
-            # Changed the way the model was built due to outdated method the model was previously being built
+            # co-pilot changed the way the model was built due to outdated method the model was previously being built
             model = self.hypermodel.build(trial.hyperparameters)
             # Remove unsupported arguments
             fit_kwargs = {k: v for k, v in copied_fit_kwargs.items() if k not in ['workers', 'use_multiprocessing']}

@@ -167,7 +167,7 @@ if __name__ == "__main__":
             metavar="e",
             type=int,
             nargs="?",
-            default=2025,
+            default=2025, # Changed boundaries in the preceeding three arguments to work with the new csv file
             help="Testing end year.",
         )
         parser.add_argument(

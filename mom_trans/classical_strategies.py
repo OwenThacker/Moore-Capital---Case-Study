@@ -17,26 +17,26 @@ VOL_LOOKBACK = 60  # for ex-ante volatility
 VOL_TARGET = 0.15  # 15% volatility target
 
 
-# Custom downside risk and Sortino ratio functions to replace empyrical's due to no long supported np.NINF
+# Custom downside risk and Sortino ratio functions to replace empyrical's due to no longer supported np.NINF
 def custom_downside_risk(returns, required_return=0, period=None, annualization=252):
     """
     Custom downside risk function to replace empyrical's downside_risk.
     """
-    downside_diff = returns - required_return
-    downside_diff[downside_diff > 0] = 0.0
+    downside_diff = returns - required_return # Calculating downside risk
+    downside_diff[downside_diff > 0] = 0.0 # Filtering out the positive as this wouldn't be considered downside
 
-    mean_downside_diff = np.mean(downside_diff ** 2)
+    mean_downside_diff = np.mean(downside_diff ** 2) # Taking the mean of the squared downside
 
-    return np.sqrt(mean_downside_diff) * np.sqrt(annualization)
+    return np.sqrt(mean_downside_diff) * np.sqrt(annualization) # Calculating and returning the downside risk
 
 def custom_sortino_ratio(returns, required_return=0, period=None, annualization=252):
     """
     Custom Sortino ratio function to replace empyrical's sortino_ratio.
     """
-    downside_risk_value = custom_downside_risk(returns, required_return, period, annualization)
-    excess_return = returns.mean() - required_return
+    downside_risk_value = custom_downside_risk(returns, required_return, period, annualization) # Calling downside function
+    excess_return = returns.mean() - required_return # Calculating excess return
 
-    return excess_return / downside_risk_value
+    return excess_return / downside_risk_value # Caculating and returning the Sortino ratio
 
 def calc_performance_metrics(data: pd.DataFrame, metric_suffix="", num_identifiers=None) -> dict:
     """Performance metrics for evaluating strategy

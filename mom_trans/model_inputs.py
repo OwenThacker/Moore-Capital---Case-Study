@@ -562,7 +562,7 @@ class ModelFeatures:
                 active_entries = np.ones((arr.shape[0], arr.shape[1], arr.shape[2]))
                 for i in range(batch_size):
                     active_entries[i, sequence_lengths[i] :, :] = 0
-                sequence_lengths = np.array(sequence_lengths, dtype=int)
+                sequence_lengths = np.array(sequence_lengths, dtype=int) # Changed dtype to int asn np.int outdated
 
                 if "active_entries" not in data_map:
                     data_map["active_entries"] = [
