@@ -514,7 +514,11 @@ def run_single_window(
 
     # save model and get rid of the hp dir
     best_directory = os.path.join(directory, "best")
-    best_model.save_weights(os.path.join(best_directory, "checkpoints", "checkpoint"))
+
+    # co-pilot added these lines to fix the filename must end in .weights.h5 error
+    checkpoint_path = os.path.join(best_directory, "checkpoints", "checkpoint.weights.h5")
+    os.makedirs(os.path.dirname(checkpoint_path), exist_ok=True)
+    best_model.save_weights(checkpoint_path)
     with open(os.path.join(best_directory, "hyperparameters.json"), "w") as file:
         file.write(json.dumps(best_hp, indent=4))
     shutil.rmtree(hp_directory)
@@ -532,12 +536,15 @@ def run_single_window(
         },
     )
 
+    # Plot the results
+    plot_results(results_sw, directory)
+
     # get rid of everything and reset - TODO maybe not needed...
     del best_model
     gc.collect()
     tf.keras.backend.clear_session()
     physical_devices = tf.config.list_physical_devices("GPU")
-    if physical_devices:
+    if (physical_devices):
         tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 
@@ -652,3 +659,35 @@ def run_classical_methods(
             returns_data["position"] * returns_data["returns"]
         )
         returns_data.to_csv(f"{directory}/captured_returns_sw.csv")
+
+import plotly.graph_objects as go
+import plotly.io as pio
+
+def plot_results(results_sw: pd.DataFrame, output_directory: str):
+    """Plot the results from the sliding window DataFrame.
+
+    Args:
+        results_sw (pd.DataFrame): DataFrame containing the sliding window results.
+        output_directory (str): Directory to save the plots.
+    """
+    # Ensure the output directory exists
+    os.makedirs(output_directory, exist_ok=True)
+
+    # Set Plotly theme to dark
+    pio.templates.default = "plotly_dark"
+
+    # Plot the cumulative returns
+    fig = go.Figure()
+    for identifier in results_sw['identifier'].unique():
+        subset = results_sw[results_sw['identifier'] == identifier]
+        fig.add_trace(go.Scatter(x=subset['time'], y=subset['captured_returns'].cumsum(), mode='lines', name=identifier))
+    fig.update_layout(
+        title='Cumulative Returns Over Time',
+        xaxis_title='Time',
+        yaxis_title='Cumulative Returns',
+        legend_title='Identifier',
+        template='plotly_dark'
+    )
+    fig.write_image(os.path.join(output_directory, 'cumulative_returns.png'))
+    fig.show()
+

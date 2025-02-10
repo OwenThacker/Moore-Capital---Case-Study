@@ -8,7 +8,6 @@ from empyrical import (
     calmar_ratio,
     sortino_ratio,
     max_drawdown,
-    downside_risk,
     annual_return,
     annual_volatility,
     # cum_returns,
@@ -18,7 +17,28 @@ VOL_LOOKBACK = 60  # for ex-ante volatility
 VOL_TARGET = 0.15  # 15% volatility target
 
 
-def calc_performance_metrics(data: pd.DataFrame, metric_suffix="", num_identifiers = None) -> dict:
+# Custom downside risk and Sortino ratio functions to replace empyrical's due to no long supported np.NINF
+def custom_downside_risk(returns, required_return=0, period=None, annualization=252):
+    """
+    Custom downside risk function to replace empyrical's downside_risk.
+    """
+    downside_diff = returns - required_return
+    downside_diff[downside_diff > 0] = 0.0
+
+    mean_downside_diff = np.mean(downside_diff ** 2)
+
+    return np.sqrt(mean_downside_diff) * np.sqrt(annualization)
+
+def custom_sortino_ratio(returns, required_return=0, period=None, annualization=252):
+    """
+    Custom Sortino ratio function to replace empyrical's sortino_ratio.
+    """
+    downside_risk_value = custom_downside_risk(returns, required_return, period, annualization)
+    excess_return = returns.mean() - required_return
+
+    return excess_return / downside_risk_value
+
+def calc_performance_metrics(data: pd.DataFrame, metric_suffix="", num_identifiers=None) -> dict:
     """Performance metrics for evaluating strategy
 
     Args:
@@ -34,8 +54,8 @@ def calc_performance_metrics(data: pd.DataFrame, metric_suffix="", num_identifie
         f"annual_return{metric_suffix}": annual_return(srs),
         f"annual_volatility{metric_suffix}": annual_volatility(srs),
         f"sharpe_ratio{metric_suffix}": sharpe_ratio(srs),
-        f"downside_risk{metric_suffix}": downside_risk(srs),
-        f"sortino_ratio{metric_suffix}": sortino_ratio(srs),
+        f"downside_risk{metric_suffix}": custom_downside_risk(srs),
+        f"sortino_ratio{metric_suffix}": custom_sortino_ratio(srs),
         f"max_drawdown{metric_suffix}": -max_drawdown(srs),
         f"calmar_ratio{metric_suffix}": calmar_ratio(srs),
         f"perc_pos_return{metric_suffix}": len(srs[srs > 0.0]) / len(srs),
@@ -55,7 +75,7 @@ def calc_performance_metrics_subset(srs: pd.Series, metric_suffix="") -> dict:
     return {
         f"annual_return{metric_suffix}": annual_return(srs),
         f"annual_volatility{metric_suffix}": annual_volatility(srs),
-        f"downside_risk{metric_suffix}": downside_risk(srs),
+        f"downside_risk{metric_suffix}": custom_downside_risk(srs),
         f"max_drawdown{metric_suffix}": -max_drawdown(srs),
     }
 

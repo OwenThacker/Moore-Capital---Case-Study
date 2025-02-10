@@ -151,7 +151,7 @@ if __name__ == "__main__":
             metavar="s",
             type=int,
             nargs="?",
-            default=1990,
+            default=2021,
             help="Training start year",
         )
         parser.add_argument(
@@ -159,7 +159,7 @@ if __name__ == "__main__":
             metavar="t",
             type=int,
             nargs="?",
-            default=2016,
+            default=2023,
             help="Training end year and test start year.",
         )
         parser.add_argument(
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             metavar="e",
             type=int,
             nargs="?",
-            default=2022,
+            default=2025,
             help="Testing end year.",
         )
         parser.add_argument(

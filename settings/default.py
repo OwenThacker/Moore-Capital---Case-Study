@@ -17,7 +17,13 @@ FEATURES_QUANDL_FILE_PATH = lambda lbw: os.path.join(
 
 FEATURES_QUANDL_FILE_PATH_DEFAULT = FEATURES_QUANDL_FILE_PATH(CPD_DEFAULT_LBW)
 
-QUANDL_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+'''
+Here I changed the tickers to match the ones in the csv data.
+However, I did not seperate the tickers by asset class.
+'''
+
+QUANDL_TICKERS = [
+    'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
        'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
        'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
        'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',
@@ -32,7 +38,8 @@ QUANDL_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Eq
        'UCG IM Equity'
 ]
 
-ALL_QUANDL_CODES = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+ALL_QUANDL_CODES = [
+    'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
        'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
        'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
        'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',
@@ -47,7 +54,8 @@ ALL_QUANDL_CODES = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS 
        'UCG IM Equity'
 ]
 
-COMMODITIES_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+COMMODITIES_TICKERS = [
+   'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
        'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
        'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
        'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',
@@ -62,7 +70,28 @@ COMMODITIES_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA 
        'UCG IM Equity'
 ]
 
-OTHER_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+OTHER_TICKERS = [
+    'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+       'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
+       'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
+       'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',
+       'BPSO IM Equity', 'CABK SQ Equity', 'CBK GY Equity', 'CMBN SE Equity',
+       'DANSKE DC Equity', 'DBK GY Equity', 'DNB NO Equity', 'EBS AV Equity',
+       'FBK IM Equity', 'GLE FP Equity', 'HSBA LN Equity', 'INGA NA Equity',
+       'INVP LN Equity', 'ISP IM Equity', 'JYSK DC Equity', 'KBC BB Equity',
+       'LLOY LN Equity', 'NDA FH Equity', 'NWG LN Equity', 'PEO PW Equity',
+       'PKO PW Equity', 'RBI AV Equity', 'RILBA DC Equity', 'SAB SQ Equity',
+       'SAN SQ Equity', 'SB1NO NO Equity', 'SEBA SS Equity', 'SHBA SS Equity',
+       'SPL PW Equity', 'STAN LN Equity', 'SWEDA SS Equity', 'SYDB DC Equity',
+       'UCG IM Equity'
+]
+
+
+PINNACLE_DATA_FOLDER = "/nfs/data/files/DAILY/PINNACLE/CLCDATA/"
+PINNACLE_DATA_CUT = "RAD"
+
+PINNACLE_ASSETS = [
+    'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
        'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
        'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
        'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',
@@ -78,7 +107,8 @@ OTHER_TICKERS = ['ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equ
 ]
 
 # TODO get rid of the ones not used get
-PINNACLE_ASSET_CLASS_MAPPING = {'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
+PINNACLE_ASSET_CLASS_MAPPING = {
+    'ABN NA Equity', 'ACA FP Equity', 'AIBG ID Equity', 'AZA SS Equity',
        'BAMI IM Equity', 'BARC LN Equity', 'BBVA SQ Equity', 'BCP PL Equity',
        'BCVN SE Equity', 'BG AV Equity', 'BGN IM Equity', 'BIRG ID Equity',
        'BKT SQ Equity', 'BMPS IM Equity', 'BNP FP Equity', 'BPE IM Equity',

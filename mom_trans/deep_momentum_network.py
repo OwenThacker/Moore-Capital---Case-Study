@@ -4,7 +4,7 @@ import pathlib
 import shutil
 import copy
 
-from keras_tuner.tuners.randomsearch import RandomSearch
+from keras_tuner import RandomSearch
 from abc import ABC, abstractmethod
 
 from tensorflow import keras
@@ -57,8 +57,7 @@ class SharpeValidationLoss(keras.callbacks.Callback):
         time_indices,
         num_time,  # including a count for nulls which will be indexed as 0
         early_stopping_patience,
-        n_multiprocessing_workers,
-        weights_save_location="tmp/checkpoint",
+        weights_save_location="tmp/checkpoint.weights.h5",
         # verbose=0,
         min_delta=1e-4,
     ):
@@ -66,29 +65,29 @@ class SharpeValidationLoss(keras.callbacks.Callback):
         self.inputs = inputs
         self.returns = returns
         self.time_indices = time_indices
-        self.n_multiprocessing_workers = n_multiprocessing_workers
         self.early_stopping_patience = early_stopping_patience
         self.num_time = num_time
         self.min_delta = min_delta
 
-        self.best_sharpe = np.NINF  # since calculating positive Sharpe...
+        # NumPy no longer supports np.NINF so we use -np.inf
+        self.best_sharpe = -np.inf  # since calculating positive Sharpe...
         # self.best_weights = None
         self.weights_save_location = weights_save_location
         # self.verbose = verbose
 
     def set_weights_save_loc(self, weights_save_location):
+        if not weights_save_location.endswith('.weights.h5'):
+            weights_save_location += '.weights.h5'
         self.weights_save_location = weights_save_location
 
     def on_train_begin(self, logs=None):
         self.patience_counter = 0
         self.stopped_epoch = 0
-        self.best_sharpe = np.NINF
+        self.best_sharpe = -np.inf
 
     def on_epoch_end(self, epoch, logs=None):
         positions = self.model.predict(
             self.inputs,
-            workers=self.n_multiprocessing_workers,
-            use_multiprocessing=True,  # , batch_size=1
         )
 
         captured_returns = tf.math.unsorted_segment_mean(
@@ -178,6 +177,7 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
             allow_new_entries,
             **kwargs,
         )
+        self._reported_step = 0 # added a default value for reported step
 
     def run_trial(self, trial, *args, **kwargs):
         kwargs["batch_size"] = trial.hyperparameters.Choice(
@@ -185,11 +185,11 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
         )
 
         original_callbacks = kwargs.pop("callbacks", [])
-
+        
         for callback in original_callbacks:
             if isinstance(callback, SharpeValidationLoss):
                 callback.set_weights_save_loc(
-                    self._get_checkpoint_fname(trial.trial_id, self._reported_step)
+                    self._get_checkpoint_fname(trial.trial_id)
                 )
 
         # Run the training process multiple times.
@@ -198,12 +198,17 @@ class TunerDiversifiedSharpe(kt.tuners.RandomSearch):
             copied_fit_kwargs = copy.copy(kwargs)
             callbacks = self._deepcopy_callbacks(original_callbacks)
             self._configure_tensorboard_dir(callbacks, trial, execution)
-            callbacks.append(kt.engine.tuner_utils.TunerCallback(self, trial))
+            # Changed to early stopping as the previous callback was not working
+            callbacks.append(keras.callbacks.EarlyStopping(monitor='val_loss'))
             # Only checkpoint the best epoch across all executions.
             # callbacks.append(model_checkpoint)
             copied_fit_kwargs["callbacks"] = callbacks
 
-            history = self._build_and_fit_model(trial, args, copied_fit_kwargs)
+            # Changed the way the model was built due to outdated method the model was previously being built
+            model = self.hypermodel.build(trial.hyperparameters)
+            # Remove unsupported arguments
+            fit_kwargs = {k: v for k, v in copied_fit_kwargs.items() if k not in ['workers', 'use_multiprocessing']}
+            history = model.fit(*args, **fit_kwargs)
             for metric, epoch_values in history.history.items():
                 if self.oracle.objective.direction == "min":
                     best_value = np.min(epoch_values)
@@ -227,7 +232,6 @@ class DeepMomentumNetworkModel(ABC):
         self.time_steps = int(params["total_time_steps"])
         self.input_size = int(params["input_size"])
         self.output_size = int(params["output_size"])
-        self.n_multiprocessing_workers = int(params["multiprocessing_workers"])
         self.num_epochs = int(params["num_epochs"])
         self.early_stopping_patience = int(params["early_stopping_patience"])
         # self.sliding_window = params["sliding_window"]
@@ -293,7 +297,6 @@ class DeepMomentumNetworkModel(ABC):
                     val_time_indices,
                     num_val_time,
                     self.early_stopping_patience,
-                    self.n_multiprocessing_workers,
                 ),
                 tf.keras.callbacks.TerminateOnNaN(),
             ]
@@ -307,8 +310,6 @@ class DeepMomentumNetworkModel(ABC):
                 # covered by Tuner class
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
         else:
             callbacks = [
@@ -334,9 +335,6 @@ class DeepMomentumNetworkModel(ABC):
                 ),
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
-                # validation_batch_size=1,
             )
 
         best_hp = self.tuner.get_best_hyperparameters(num_trials=1)[0].values
@@ -372,7 +370,6 @@ class DeepMomentumNetworkModel(ABC):
                     val_time_indices,
                     num_val_time,
                     self.early_stopping_patience,
-                    self.n_multiprocessing_workers,
                     weights_save_location=temp_folder,
                 ),
                 tf.keras.callbacks.TerminateOnNaN(),
@@ -386,8 +383,6 @@ class DeepMomentumNetworkModel(ABC):
                 batch_size=hyperparameters["batch_size"],
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
             model.load_weights(temp_folder)
         else:
@@ -414,8 +409,6 @@ class DeepMomentumNetworkModel(ABC):
                 ),
                 callbacks=callbacks,
                 shuffle=True,
-                use_multiprocessing=True,
-                workers=self.n_multiprocessing_workers,
             )
         return model
 
@@ -441,8 +434,6 @@ class DeepMomentumNetworkModel(ABC):
                 x=inputs,
                 y=outputs,
                 sample_weight=active_entries,
-                workers=32,
-                use_multiprocessing=True,
             )
 
             metrics = pd.Series(metric_values, model.metrics_names)
@@ -473,8 +464,6 @@ class DeepMomentumNetworkModel(ABC):
 
         positions = model.predict(
             inputs,
-            workers=self.n_multiprocessing_workers,
-            use_multiprocessing=True,  # , batch_size=1
         )
         if sliding_window:
             positions = positions[:, -1, 0].flatten()
@@ -536,13 +525,14 @@ class LstmDeepMomentumNetworkModel(DeepMomentumNetworkModel):
 
         model = keras.Model(inputs=input, outputs=output)
 
-        adam = keras.optimizers.Adam(lr=learning_rate, clipnorm=max_gradient_norm)
+        # Updated from 'lr' to 'learning_rate' due to update in keras
+        adam = keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=max_gradient_norm)
 
         sharpe_loss = SharpeLoss(self.output_size).call
 
         model.compile(
             loss=sharpe_loss,
             optimizer=adam,
-            sample_weight_mode="temporal",
         )
         return model
+

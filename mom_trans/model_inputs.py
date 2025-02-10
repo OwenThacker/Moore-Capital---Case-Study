@@ -72,21 +72,20 @@ class ModelFeatures:
         df,
         total_time_steps,
         start_boundary=1990,
-        test_boundary=2020,
-        test_end=2021,
+        test_boundary=2024,  # Adjusted these values to align with the interval in CSV data
+        test_end=2025,
         changepoint_lbws=None,
         train_valid_sliding=False,
-        # add_buffer_years_to_test=1,  # TODO FIX THIS!!!!
-        transform_real_inputs=False,  # TODO remove this
+        transform_real_inputs=False,
         train_valid_ratio=0.9,
         split_tickers_individually=True,
         add_ticker_as_static=False,
         time_features=False,
         lags=None,
         asset_class_dictionary=None,
-        static_ticker_type_feature = False,
+        static_ticker_type_feature=False,
     ):
-        """Initialises formatter. Splits data frame into training-validation-test data frames.
+        """Initializes formatter. Splits data frame into training-validation-test data frames.
         This also calibrates scaling object, and transforms data for each split."""
         self._column_definition = [
             ("ticker", DataTypes.CATEGORICAL, InputTypes.ID),
@@ -101,6 +100,7 @@ class ModelFeatures:
             ("macd_16_48", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
             ("macd_32_96", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT),
         ]
+
         df = df.dropna()
         df = df[df["year"] >= start_boundary].copy()
         years = df["year"]
@@ -135,11 +135,7 @@ class ModelFeatures:
             self._column_definition.append(
                 (f"week_of_year", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT)
             )
-            # self._column_definition.append(
-            #     (f"month_of_year", DataTypes.REAL_VALUED, InputTypes.KNOWN_INPUT)
-            # )
 
-            # dataframe could have later years
             start_date = dt.datetime(start_boundary, 1, 1)
             days_from_start_max = (dt.datetime(test_end - 1, 12, 31) - start_date).days
             df["days_from_start"] = (df.index - start_date).days
@@ -159,7 +155,6 @@ class ModelFeatures:
             df["week_of_year"] = (
                 MinMaxScaler().fit_transform(df[["week_of_year"]].values).flatten()
             )
-            # df["month_of_year"] = MinMaxScaler().fit_transform(df[["month_of_year"]].values).flatten()
 
         if add_ticker_as_static:
             self._column_definition.append(
@@ -180,13 +175,10 @@ class ModelFeatures:
 
         self.transform_real_inputs = transform_real_inputs
 
-        # for static_variables
-        # self._column_definition.append(("ticker", DataTypes.CATEGORICAL, InputTypes.STATIC_INPUT))
-
-        test = df.loc[years >= test_boundary]
+        # Ensure trainvalid is defined before accessing it
+        trainvalid = df.loc[years < test_boundary]
 
         if split_tickers_individually:
-            trainvalid = df.loc[years < test_boundary]
             if lags:
                 tickers = (
                     trainvalid.groupby("ticker")["ticker"].count()
@@ -207,9 +199,9 @@ class ModelFeatures:
             train = pd.concat(train)
             valid = pd.concat(valid)
 
+            test = df.loc[years >= test_boundary]
             test = test[test.ticker.isin(tickers)]
         else:
-            trainvalid = df.loc[years < test_boundary]
             dates = np.sort(trainvalid.index.unique())
             split_index = int(train_valid_ratio * len(dates))
             train_dates = pd.DataFrame({"date": dates[:split_index]})
@@ -235,18 +227,12 @@ class ModelFeatures:
                 train = train[train.ticker.isin(tickers)]
 
             else:
-                # at least one full training sequence
-                # tickers = (
-                #     train.groupby("ticker")["ticker"].count() > self.total_time_steps
-                # )
-                # tickers = tickers[tickers].index.tolist()
                 tickers = list(train.ticker.unique())
             valid = valid[valid.ticker.isin(tickers)]
+            test = df.loc[years >= test_boundary]
             test = test[test.ticker.isin(tickers)]
 
-        # don't think this is needed...
         if test_end:
-            # test = test[test["year"] < ((test_end + add_buffer_years_to_test))]
             test = test[test["year"] < test_end]
 
         test_with_buffer = pd.concat(
@@ -255,7 +241,7 @@ class ModelFeatures:
                     [
                         trainvalid[trainvalid.ticker == t].iloc[
                             -(self.total_time_steps - 1) :
-                        ],  # TODO this
+                        ],
                         test[test.ticker == t],
                     ]
                 ).sort_index()
@@ -263,7 +249,6 @@ class ModelFeatures:
             ]
         )
 
-        # to deal with case where fixed window did not have a full sequence
         if lags:
             for t in tickers:
                 test_ticker = test[test["ticker"] == t]
@@ -272,7 +257,6 @@ class ModelFeatures:
                     test = pd.concat(
                         [trainvalid[trainvalid["ticker"] == t][diff:], test]
                     )
-                    # maybe should sort here but probably not needed
 
         self.tickers = tickers
         self.num_tickers = len(tickers)
@@ -578,7 +562,7 @@ class ModelFeatures:
                 active_entries = np.ones((arr.shape[0], arr.shape[1], arr.shape[2]))
                 for i in range(batch_size):
                     active_entries[i, sequence_lengths[i] :, :] = 0
-                sequence_lengths = np.array(sequence_lengths, dtype=np.int)
+                sequence_lengths = np.array(sequence_lengths, dtype=int)
 
                 if "active_entries" not in data_map:
                     data_map["active_entries"] = [
